@@ -25,11 +25,10 @@ class LinearResponse(object):
         self.json_file = self.file_name(extension='.json')
 
     def file_name(self, extension='.png'):
-        name = f'LinearResponse_L{self.L}'
+        name = f'LinearResponse_L{self.L}_D{self.delta}'
         if self.hamiltonian_reduced:
-            name += '_ham_reduced'
-        if self.pbc:
-            name += '_pbc'
+            name += '_reduced'
+        name += '_pbc' if self.pbc else '_obc'
         return name + extension
 
     def get_json_file_name(self):
@@ -42,9 +41,9 @@ class LinearResponse(object):
         else:
             title += ', full-size hamiltonian'
         if self.pbc:
-            title += ', periodic boundary condition'
+            title += ', periodic boundary conditions'
         else:
-            title += ', open boundary condition'
+            title += ', open boundary conditions'
         return title
 
     def save_data(self):
@@ -123,10 +122,10 @@ class LinearResponse(object):
 
 J = 1
 delta = 1
-L = 8
+L = 10
 temperature_range = [0, 1, float('inf')]
-periodic_boundary = False
-spin_zero = False
+periodic_boundary = True
+spin_zero = True
 omega_bin = 0.1
 
 start_time = time()

@@ -101,7 +101,7 @@ L = 14
 delta = 1
 temperatures = linspace(0.1, 2, 100)
 periodic_boundary = False
-spin_zero = True
+spin_zero = False
 
 specific_heat = SpecificHeat(J=J, L=L, delta=delta,
                              hamiltonian_reduced=spin_zero,

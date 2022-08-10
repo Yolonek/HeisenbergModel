@@ -22,7 +22,7 @@ class MeanEnergy(object):
         self.temperatures = temperature_range
 
     def file_name(self, extension='.png'):
-        name = 'MeanEnergy'
+        name = f'MeanEnergy_L{self.L}'
         if self.divided_by_L:
             name += '_divided_by_L'
         if self.hamiltonian_reduced:

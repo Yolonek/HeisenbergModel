@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 class TimeEvolution(object):
 
-    def __init__(self, J=1, L=0, deltas=None, time_range=None, hamiltonian_reduced=False, is_pbc=False, initial_state=None):
+    def __init__(self, J=1, L=0, deltas=None, time_range=None,
+                 hamiltonian_reduced=False, is_pbc=False, initial_state=None):
         self.J = J
         self.deltas = deltas
         if hamiltonian_reduced:
@@ -28,9 +29,12 @@ class TimeEvolution(object):
     def file_name(self, extension='.png'):
         name = f'TimeEvolution_L{self.L}'
         if self.hamiltonian_reduced:
-            name += '_ham_reduced'
-        if self.pbc:
-            name += '_pbc'
+            name += '_reduced'
+        name += '_pbc' if self.pbc else '_obc'
+        if self.initial_state != create_initial_state(self.L):
+            name += f'_init{self.initial_state}'
+        else:
+            name += '_standard_init'
         return name + extension
 
     def get_json_file_name(self):
@@ -42,6 +46,10 @@ class TimeEvolution(object):
             title += ', total spin = 0'
         else:
             title += ', full-size hamiltonian'
+        if self.pbc:
+            title += ', periodic boundary conditions'
+        else:
+            title += ', open boundary conditions'
         return title
 
     def save_data(self):
@@ -125,9 +133,9 @@ class TimeEvolution(object):
 
 
 J = 1
-L = 16
+L = 12
 deltas = [0, 1, 2]
-periodic_boundary = False
+periodic_boundary = True
 spin_zero = True
 times = linspace(0, 20, 200)
 init_state = None

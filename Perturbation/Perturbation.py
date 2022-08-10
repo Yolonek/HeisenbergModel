@@ -28,9 +28,8 @@ class Perturbation(object):
     def file_name(self, extension='.png'):
         name = f'Perturbation_L{self.L}'
         if self.hamiltonian_reduced:
-            name += '_ham_reduced'
-        if self.pbc:
-            name += '_pbc'
+            name += '_reduced'
+        name += '_pbc' if self.pbc else '_obc'
         return name + extension
 
     def get_json_file_name(self):
@@ -136,7 +135,7 @@ class Perturbation(object):
 # Parameters
 J = 1
 delta = 1
-L = 10
+L = 6
 h = [0.01, 1, 10]
 periodic_boundary = True
 spin_zero = True
