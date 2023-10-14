@@ -1,5 +1,5 @@
 from HamiltonianClass import *
-from CommonFunctions import print_and_store
+from CommonFunctions import print_and_store, make_directories
 from time import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,9 +32,9 @@ class TimeEvolution(object):
         name = f'TimeEvolution_L{self.L}D-'
         for delta in self.deltas:
             name += f'{delta}-'
+        name += 'pbc' if self.pbc else 'obc'
         if self.hamiltonian_reduced:
             name += '_reduced'
-        name += 'pbc' if self.pbc else 'obc'
         if self.initial_state != create_initial_state(self.L):
             name += f'_init{self.initial_state}'
         else:
@@ -150,8 +150,6 @@ if __name__ == '__main__':
     times = linspace(0, 20, 200)
     init_state = None
 
-    start_time = time()
-
     time_evolution = TimeEvolution(J=J, L=L, deltas=deltas,
                                    hamiltonian_reduced=spin_zero,
                                    is_pbc=periodic_boundary,
@@ -175,13 +173,13 @@ if __name__ == '__main__':
         stop_time = time()
         time_evolution.logs = print_and_store(time_evolution.logs,
                                               message=f'Program took {round(stop_time - start_time, 3)} seconds.')
-        time_evolution.save_data(sub_dir='results')
+        time_evolution.save_data(sub_dir=results_path)
     else:
-        time_evolution.load_data(sub_dir='results')
+        time_evolution.load_data(sub_dir=results_path)
         print(time_evolution.logs)
 
-    fig1, ax1 = time_evolution.plot_time_evolution()
+    figure, axes = time_evolution.plot_time_evolution()
 
     image_name = os.path.join(image_path, time_evolution.file_name())
     if not check_if_file_exists(image_name):
-        fig1.savefig(image_name)
+        figure.savefig(image_name)

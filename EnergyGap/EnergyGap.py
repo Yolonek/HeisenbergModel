@@ -1,8 +1,7 @@
 from HamiltonianClass import *
+from CommonFunctions import print_and_store
 from time import time
-import numpy as np
 import matplotlib.pyplot as plt
-import json
 
 
 class EnergyGap(object):
@@ -17,10 +16,11 @@ class EnergyGap(object):
         self.pbc = is_pbc
         self.energy_gap_delta_dict = {}
         self.json_file = self.file_name(extension='.json')
+        self.logs = ''
 
     def simulate_energy_gap(self):
+        self.logs = print_and_store(self.logs)
         for delta in self.delta_list:
-            # energy_delta_range = np.zeros(len(self.L_list))
             energy_delta_range = []
             for index, L in enumerate(self.L_list):
                 start_time_sim = time()
@@ -28,11 +28,11 @@ class EnergyGap(object):
                 energy_delta = quantum_state.get_energy_delta(0, 1)
                 if self.divided_by_L:
                     energy_delta = energy_delta / L
-                # energy_delta_range[index] = energy_delta
                 energy_delta_range.append(energy_delta)
                 stop_time_sim = time()
-                print(f'Delta = {delta}, L = {L}, Energy delta = {round(energy_delta, 4)}, '
-                      f'time elapsed: {round(stop_time_sim - start_time_sim, 3)} seconds')
+                self.logs = print_and_store(self.logs,
+                                            message=f'Delta = {delta}, L = {L}, Energy delta = {round(energy_delta, 4)}'
+                                            f', time elapsed: {round(stop_time_sim - start_time_sim, 3)} seconds')
             self.energy_gap_delta_dict[str(delta)] = energy_delta_range
 
     def plot_energy_gap(self):
@@ -57,11 +57,11 @@ class EnergyGap(object):
         return figure, axes
 
     def figure_title(self):
-        title = 'Energy gap'
+        title = r'$\epsilon_n(L)$'
         if self.divided_by_L:
-            title += ' / L'
+            title += '$ / L$'
         if self.hamiltonian_reduced:
-            title += ', total spin = 0'
+            title += r', $\hat{S}_{tot}^z = 0'
         else:
             title += ', full-size hamiltonian'
         if self.pbc:
@@ -71,31 +71,33 @@ class EnergyGap(object):
         return title
 
     def file_name(self, extension='.png'):
-        name = f'EnergyGap_L{self.L}D'
+        name = f'EnergyGap_L{self.L}D-'
         for delta in self.delta_list:
-            name += str(delta)
+            name += f'{delta}-'
+        name += 'pbc' if self.pbc else 'obc'
         if self.divided_by_L:
             name += '_divided_by_L'
         if self.hamiltonian_reduced:
             name += '_reduced'
-        name += '_pbc' if self.pbc else '_obc'
         return name + extension
 
-    def save_data(self):
+    def save_data(self, sub_dir=''):
         dict_with_data = {'deltas': self.delta_list,
                           'L list': self.L_list,
                           'J': self.J,
                           'L': self.L,
-                          'energy gap': self.energy_gap_delta_dict}
-        save_json_file(dict_with_data, self.json_file)
+                          'energy gap': self.energy_gap_delta_dict,
+                          'logs': self.logs}
+        save_json_file(dict_with_data, self.json_file, sub_dir=sub_dir)
 
-    def load_data(self):
-        dict_with_data = read_json_file(self.json_file)
+    def load_data(self, sub_dir=''):
+        dict_with_data = read_json_file(self.json_file, sub_dir=sub_dir)
         self.delta_list = dict_with_data['deltas']
         self.L_list = dict_with_data['L list']
         self.J = dict_with_data['J']
         self.L = dict_with_data['L']
         self.energy_gap_delta_dict = dict_with_data['energy gap']
+        self.logs = dict_with_data['logs']
 
     def get_json_file_name(self):
         return self.json_file
@@ -103,30 +105,41 @@ class EnergyGap(object):
 
 if __name__ == '__main__':
     J = 1
-    L = 14
+    L = 12
     deltas = [0.5, 1.0, 2.0]
     is_reduced = False
     is_divided = False
-    periodic_boundary_conditions = True
+    periodic_boundary = True
 
     energy_gap = EnergyGap(J=J, L_max=L, delta_list=deltas,
                            hamiltonian_reduced=is_reduced,
                            divided_by_L=is_divided,
-                           is_pbc=periodic_boundary_conditions)
+                           is_pbc=periodic_boundary)
+
+    results_path = 'results'
+    image_path = 'images'
+    make_directories([results_path, image_path])
 
     json_file_name = energy_gap.get_json_file_name()
-    is_simulation_done = check_if_file_has_data(json_file_name)
+    is_simulation_done = check_if_file_has_data(json_file_name, sub_dir=results_path)
     ask_to_redo_simulation = False
 
     if is_simulation_done:
         ask_to_redo_simulation = ask_to_replace_file()
 
     if is_simulation_done is False or ask_to_redo_simulation:
+        start_time = time()
         energy_gap.simulate_energy_gap()
-        energy_gap.save_data()
+        stop_time = time()
+        energy_gap.logs = print_and_store(energy_gap.logs,
+                                          message=f'Program took {round(stop_time - start_time, 3)} seconds.')
+        energy_gap.save_data(sub_dir=results_path)
     else:
-        energy_gap.load_data()
+        energy_gap.load_data(sub_dir=results_path)
+        print(energy_gap.logs)
 
-    fig1, ax1 = energy_gap.plot_energy_gap()
+    figure, axes = energy_gap.plot_energy_gap()
 
-    fig1.savefig(energy_gap.file_name())
+    image_name = os.path.join(image_path, energy_gap.file_name())
+    if not check_if_file_exists(image_name):
+        figure.savefig(image_name)
