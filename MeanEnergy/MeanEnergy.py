@@ -1,4 +1,5 @@
 from HamiltonianClass import *
+from CommonFunctions import print_and_store, make_directories
 from time import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,16 +20,17 @@ class MeanEnergy(object):
         self.mean_energy_dict = {}
         self.json_file = self.file_name(extension='.json')
         self.temperatures = temperature_range
+        self.logs = ''
 
     def file_name(self, extension='.png'):
-        name = f'MeanEnergy_L{self.L}D'
+        name = f'MeanEnergy_L{self.L}D-'
         for delta in self.deltas:
-            name += str(delta)
+            name += f'{delta}-'
+        name += '_pbc' if self.pbc else '_obc'
         if self.divided_by_L:
             name += '_divided_by_L'
         if self.hamiltonian_reduced:
             name += '_reduced'
-        name += '_pbc' if self.pbc else '_obc'
         return name + extension
 
     def get_json_file_name(self):
@@ -39,7 +41,7 @@ class MeanEnergy(object):
         if self.divided_by_L:
             title += ', divided by L'
         if self.hamiltonian_reduced:
-            title += ', total spin = 0'
+            title += r', $\hat{S}^z_{tot} = 0$'
         else:
             title += ', full-size hamiltonian'
         if self.pbc:
@@ -48,7 +50,7 @@ class MeanEnergy(object):
             title += ', open boundary conditions'
         return title
 
-    def save_data(self):
+    def save_data(self, sub_dir=''):
         dict_with_data = {'J': self.J,
                           'deltas': self.deltas,
                           'L list': self.L_list,
@@ -57,14 +59,15 @@ class MeanEnergy(object):
                           'periodic': self.pbc,
                           'divided': self.divided_by_L,
                           'temperatures': self.temperatures.tolist(),
-                          'mean energy': {}}
+                          'mean energy': {},
+                          'logs': self.logs}
         for delta in self.mean_energy_dict:
             dict_with_data['mean energy'][delta] = {}
             for L, energy in self.mean_energy_dict[delta].items():
                 dict_with_data['mean energy'][delta][L] = energy.tolist()
-        save_json_file(dict_with_data, self.json_file)
+        save_json_file(dict_with_data, self.json_file, sub_dir=sub_dir)
 
-    def load_data(self):
+    def load_data(self, sub_dir=''):
         dict_with_data = read_json_file(self.json_file)
         self.J = dict_with_data['J']
         self.deltas = dict_with_data['deltas']
@@ -78,26 +81,29 @@ class MeanEnergy(object):
             self.mean_energy_dict[delta] = {}
             for L, energy in dict_with_data['mean energy'][delta].items():
                 self.mean_energy_dict[delta][L] = np.array(energy)
+        self.logs = dict_with_data['logs']
 
     def simulate_mean_energy(self):
+        self.logs = print_and_store(self.logs)
         self.mean_energy_dict = {}
         for delta in self.deltas:
             self.mean_energy_dict[str(delta)] = {}
             for L in self.L_list:
                 start_time_sim = time()
                 quantum_state = QuantumState(L, self.J, delta, is_reduced=self.hamiltonian_reduced)
+                self.logs = quantum_state.print_hamiltonian_data(return_msg=True)
                 quantum_state.calculate_mean_energy_range(self.temperatures)
                 mean_energy = quantum_state.mean_energy
                 if self.divided_by_L:
                     mean_energy = mean_energy / L
                 self.mean_energy_dict[str(delta)][str(L)] = mean_energy
                 stop_time_sim = time()
-                print(f'Delta = {delta}, L = {L}, time elapsed: {round(stop_time_sim - start_time_sim, 3)} seconds')
+                self.logs = print_and_store(self.logs,
+                                            message=f'Time elapsed: {round(stop_time_sim - start_time_sim, 3)} seconds')
 
     def plot_mean_energy(self):
-        amount_of_deltas = len(self.deltas)
-        figure, axis = plt.subplots(1, amount_of_deltas)
-        for delta, index in zip(self.deltas, range(amount_of_deltas)):
+        figure, axis = plt.subplots(1, len(self.deltas))
+        for index, delta in enumerate(self.deltas):
             axis[index].set_title(f'$\Delta = {delta}$')
             for L in self.L_list:
                 mean_energy = self.mean_energy_dict[str(delta)][str(L)]
@@ -127,19 +133,30 @@ if __name__ == '__main__':
                              is_pbc=periodic_boundary,
                              divided_by_L=is_divided_by_L)
 
+    results_path = 'results'
+    image_path = 'images'
+    make_directories([results_path, image_path])
+
     json_file_name = mean_energy.get_json_file_name()
-    is_simulation_done = check_if_file_has_data(json_file_name)
+    is_simulation_done = check_if_file_has_data(json_file_name, sub_dir=results_path)
     ask_to_redo_simulation = False
 
     if is_simulation_done:
         ask_to_redo_simulation = ask_to_replace_file()
 
     if is_simulation_done is False or ask_to_redo_simulation:
+        start_time = time()
         mean_energy.simulate_mean_energy()
-        mean_energy.save_data()
+        stop_time = time()
+        mean_energy.logs = print_and_store(mean_energy.logs,
+                                           message=f'Program took {round(stop_time - start_time, 3)} seconds.')
+        mean_energy.save_data(sub_dir=results_path)
     else:
-        mean_energy.load_data()
+        mean_energy.load_data(sub_dir=results_path)
+        print(mean_energy.logs)
 
-    fig1, ax1 = mean_energy.plot_mean_energy()
+    figure, axes = mean_energy.plot_mean_energy()
 
-    fig1.savefig(mean_energy.file_name())
+    image_name = os.path.join(image_path, mean_energy.file_name())
+    if not check_if_file_exists(image_name):
+        figure.savefig(image_name)

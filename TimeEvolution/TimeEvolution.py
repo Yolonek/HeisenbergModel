@@ -48,7 +48,7 @@ class TimeEvolution(object):
         title = (f'Magnetization in function of time for every spin with '
                  f'initial state $|{self.initial_state}$' + r'$\rangle$')
         if self.hamiltonian_reduced:
-            title += ', $S^z_{tot} = 0$'
+            title += r', $\hat{S}^z_{tot} = 0$'
         else:
             title += ', full-size hamiltonian'
         if self.pbc:
@@ -67,10 +67,10 @@ class TimeEvolution(object):
                           'initial energy': self.initial_energy,
                           'initial temperature': self.initial_temperature,
                           'time': self.time_range.tolist(),
-                          'time evolution': {}}
+                          'time evolution': {},
+                          'logs': self.logs}
         for delta, evo in self.time_evolution_dict.items():
             dict_with_data['time evolution'][delta] = evo.tolist()
-        dict_with_data['logs'] = self.logs
         save_json_file(dict_with_data, self.json_file, sub_dir=sub_dir)
 
     def load_data(self, sub_dir=''):
@@ -97,7 +97,7 @@ class TimeEvolution(object):
             quantum_state = QuantumState(self.L, self.J, delta,
                                          is_pbc=self.pbc,
                                          is_reduced=self.hamiltonian_reduced)
-            self.logs += quantum_state.print_hamiltonian_data(return_msg=True)
+            self.logs = quantum_state.print_hamiltonian_data(return_msg=True)
             quantum_state.set_basis_element_to_state_vector(self.initial_state)
             initial_temperature, initial_energy = quantum_state.find_temperature_for_state_energy(temperature_range)
             self.initial_energy[str(delta)] = initial_energy
@@ -145,9 +145,10 @@ if __name__ == '__main__':
     J = 1
     L = 16
     deltas = [0, 1.0, 2.0]
+    times = linspace(0, 20, 200)
+
     periodic_boundary = True
     spin_zero = True
-    times = linspace(0, 20, 200)
     init_state = None
 
     time_evolution = TimeEvolution(J=J, L=L, deltas=deltas,

@@ -25,13 +25,14 @@ class EnergyGap(object):
             for index, L in enumerate(self.L_list):
                 start_time_sim = time()
                 quantum_state = QuantumState(L, self.J, delta, is_reduced=self.hamiltonian_reduced, is_pbc=self.pbc)
+                self.logs = quantum_state.print_hamiltonian_data(return_msg=True)
                 energy_delta = quantum_state.get_energy_delta(0, 1)
                 if self.divided_by_L:
                     energy_delta = energy_delta / L
                 energy_delta_range.append(energy_delta)
                 stop_time_sim = time()
                 self.logs = print_and_store(self.logs,
-                                            message=f'Delta = {delta}, L = {L}, Energy delta = {round(energy_delta, 4)}'
+                                            message=f'Energy delta = {round(energy_delta, 4)}'
                                             f', time elapsed: {round(stop_time_sim - start_time_sim, 3)} seconds')
             self.energy_gap_delta_dict[str(delta)] = energy_delta_range
 
