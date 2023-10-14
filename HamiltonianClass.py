@@ -490,27 +490,20 @@ class QuantumState(Hamiltonian):
 
 
 if __name__ == '__main__':
-    # J = 1
-    # L = 4
-    # delta = 1
-    # periodic_boundary = False
-    # spin_zero = True
-    #
-    # state_1 = QuantumState(L, J, delta, is_pbc=periodic_boundary)
-    # state_1.calculate_expected_value()
-    # state_1.calculate_variance()
-    # state_1.print_all_data(with_matrix=True, with_state_vector=True)
-    #
-    # print('==========================================================================')
-    #
-    # state_2 = QuantumState(L, J, delta, is_pbc=periodic_boundary, is_reduced=spin_zero)
-    # state_2.calculate_expected_value()
-    # state_2.calculate_variance()
-    # state_2.print_all_data(with_matrix=True, with_state_vector=True)
-
-    L = 4
     J = 1
+    L = 4
     delta = 1
-    quantum_state = QuantumState(L, J, delta, is_reduced=True)
-    quantum_state.set_basis_element_to_state_vector('1100')
-    print(quantum_state.quantum_state2(2))
+    periodic_boundary = False
+    spin_zero = True
+
+    state_1 = QuantumState(L, J, delta, is_pbc=periodic_boundary)
+    state_1.calculate_expected_value()
+    state_1.calculate_variance()
+    state_1.print_all_data(with_matrix=True, with_state_vector=True)
+
+    print('==========================================================================')
+
+    state_2 = QuantumState(L, J, delta, is_pbc=periodic_boundary, is_reduced=spin_zero)
+    state_2.calculate_expected_value()
+    state_2.calculate_variance()
+    state_2.print_all_data(with_matrix=True, with_state_vector=True)
