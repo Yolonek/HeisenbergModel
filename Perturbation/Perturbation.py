@@ -89,7 +89,7 @@ class Perturbation(object):
             linear_response_grid = None
             for wave_vec, k in zip(self.wave_vector_list, self.k_list):
                 start_time_sim = time()
-                perturbation = quantum_state.set_wave_vector_perturbation(h_param, wave_vec)
+                perturbation = quantum_state.get_wave_vector_perturbation(h_param, wave_vec)
                 quantum_state.eigenstates(add_perturbation=perturbation)
                 quantum_state.set_vector_from_eigenstate(0)
                 quantum_state.eigenstates()

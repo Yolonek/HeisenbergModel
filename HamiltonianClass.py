@@ -149,6 +149,9 @@ class Hamiltonian(object):
     def get_all_eigenvalues(self):
         return self.eigenvalues
 
+    def get_hamiltonian(self):
+        return self.matrix
+
     def get_energy_delta(self, level_1, level_2):
         if self.eigenvalues is not None:
             return round(self.eigenvalues[level_2] - self.eigenvalues[level_1], 8)
@@ -395,7 +398,7 @@ class QuantumState(Hamiltonian):
         else:
             return np.arange(boundary[0], boundary[1], step)
 
-    def set_wave_vector_perturbation(self, h, wave_vec):
+    def get_wave_vector_perturbation(self, h, wave_vec):
         perturbation = mat()
         perturbation.zeros(self.size, self.size)
         for spin in range(self.L):
