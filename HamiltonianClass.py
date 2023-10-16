@@ -313,15 +313,15 @@ class QuantumState(Hamiltonian):
         state_vector_matrix = eigenvector_matrix * coefficient_vector
         return cx_mat(state_vector_matrix.sum(axis=1)[:, None])
 
-    # def quantum_state_of_t(self, time_value):
-    #     number_of_states = len(self.eigenvalues)
-    #     quantum_state = cx_mat()
-    #     quantum_state.zeros(number_of_states, 1)
-    #     for state_number in range(number_of_states):
-    #         coefficient = self.coefficient_c_of_t(time_value, state_number)
-    #         eigenvector = self.get_nth_eigenvector(state_number)
-    #         quantum_state += coefficient * cx_mat(eigenvector)
-    #     return quantum_state
+    def quantum_state_of_t_deprecated(self, time_value):
+        number_of_states = len(self.eigenvalues)
+        quantum_state = cx_mat()
+        quantum_state.zeros(number_of_states, 1)
+        for state_number in range(number_of_states):
+            coefficient = self.coefficient_c_of_t(time_value, state_number)
+            eigenvector = self.get_nth_eigenvector(state_number)
+            quantum_state += coefficient * cx_mat(eigenvector)
+        return quantum_state
 
     def set_spin_operator(self, spin_number, assign=True):
         spin_operator = mat()
@@ -342,8 +342,7 @@ class QuantumState(Hamiltonian):
         return np.vectorize(self.operator_time_evolution)
 
     def calculate_operator_time_evolution(self, time_range):
-        list_length = len(time_range)
-        operator_mean_value_numpy = np.zeros(list_length)
+        operator_mean_value_numpy = np.zeros(len(time_range))
         for index, dt in enumerate(time_range):
             quantum_state = self.quantum_state_of_t(dt)
             operator_mean_value = calculate_expected_value(self.operator, quantum_state)
@@ -370,11 +369,11 @@ class QuantumState(Hamiltonian):
         for n in range(self.size):
             n_value = self.get_nth_eigenvalue(n)
             n_state = self.get_nth_eigenvector(n)
+            exponent = 1 / exp(n_value / temperature) if temperature != 0 else 1
             for m in range(self.size):
                 m_value = self.get_nth_eigenvalue(m)
                 m_state = self.get_nth_eigenvector(m)
                 omega = m_value - n_value
-                exponent = 1 / exp(n_value / temperature) if temperature != 0 else 1
                 dirac_delta = dirac_delta_func(omega_range, omega, omega_bin)
                 matrix_element = calculate_matrix_element(n_state, self.operator, m_state)
                 matrix_element_square = square_of_complex_modulus(matrix_element)

@@ -143,13 +143,13 @@ class TimeEvolution(object):
 
 if __name__ == '__main__':
     J = 1
-    L = 16
+    L = 14
     deltas = [0, 1.0, 2.0]
     times = linspace(0, 20, 200)
 
     periodic_boundary = True
-    spin_zero = True
-    init_state = None
+    spin_zero = False
+    init_state = '10000000000000'
 
     time_evolution = TimeEvolution(J=J, L=L, deltas=deltas,
                                    hamiltonian_reduced=spin_zero,
