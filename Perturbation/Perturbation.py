@@ -4,6 +4,7 @@ from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Perturbation(object):
     def __init__(self, J=1, L=0, delta=0, h_list=None, hamiltonian_reduced=False, is_pbc=False, omega_bin=0.05,
                  time_range=None):

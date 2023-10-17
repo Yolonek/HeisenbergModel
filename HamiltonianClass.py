@@ -2,11 +2,10 @@ from CommonFunctions import *
 from OperatorFunctions import *
 from pyarma import mat, eig_sym, norm, fill
 import numpy as np
-from math import exp, pi, cos
+from math import exp, cos
 from cmath import exp as c_exp
 from time import time
 from random import uniform
-from matplotlib import pyplot as plt
 from functools import partial
 
 
