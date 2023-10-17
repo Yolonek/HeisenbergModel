@@ -147,7 +147,7 @@ if __name__ == '__main__':
     deltas = [0, 1.0, 2.0]
     times = linspace(0, 20, 200)
 
-    periodic_boundary = True
+    periodic_boundary = False
     spin_zero = False
     init_state = '10000000000000'
 

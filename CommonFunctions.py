@@ -120,10 +120,6 @@ def read_json_file(json_file_name, sub_dir=''):
     return dict_with_data
 
 
-def convert_array_to_imaginary_part(np_array):
-    return vectorize(lambda x: complex(0, x))(np_array)
-
-
 def print_and_store(variable, message=None, only_variable=False, end='\n'):
     if message is None:
         message = f'Program executed on {datetime.now()}.'

@@ -84,7 +84,7 @@ class Perturbation(object):
                                      is_pbc=self.pbc,
                                      is_reduced=self.hamiltonian_reduced)
         self.omega_range = quantum_state.generate_linspace_of_omega(self.omega_bin, boundary=(0, 3))
-        time_range_imaginary = convert_array_to_imaginary_part(self.time_range)
+        # time_range_imaginary = 1j * self.time_range
         for h_param in self.h_list:
             linear_response_grid = None
             for wave_vec, k in zip(self.wave_vector_list, self.k_list):
@@ -93,9 +93,9 @@ class Perturbation(object):
                 quantum_state.eigenstates(add_perturbation=perturbation)
                 quantum_state.set_vector_from_eigenstate(0)
                 quantum_state.eigenstates()
-                time_evo_dict = quantum_state.spin_evolution_range(self.time_range)
-                linear_response = quantum_state.calculate_linear_response_fft(self.omega_range, time_range_imaginary,
-                                                                              time_evo_dict, wave_vec)[:, None]
+                time_evo_grid = quantum_state.spin_evolution_range(self.time_range)
+                linear_response = quantum_state.calculate_linear_response_fft(self.omega_range, self.time_range,
+                                                                              time_evo_grid, wave_vec)[:, None]
                 if k == 0:
                     linear_response_grid = linear_response
                 else:
@@ -109,32 +109,31 @@ class Perturbation(object):
     def plot_perturbation(self):
         amount_of_plots = len(self.h_list)
         wave_vector_range = np.array(self.wave_vector_list)
-        figure, axis = plt.subplots(1, amount_of_plots)
-        for h_param, index in zip(self.linear_response_dict, range(amount_of_plots)):
+        figure, axes = plt.subplots(1, amount_of_plots, layout='constrained')
+        for index, h_param in enumerate(self.linear_response_dict):
             linear_response_grid = np.sqrt(self.linear_response_dict[str(h_param)])
             # linear_response_grid = self.linear_response_dict[str(h_param)]
             graph_title = f'$L = {self.L}$, $h = {h_param}$, $\Delta = {self.delta}$, $J = {self.J}$'
-            axis[index].set_title(graph_title)
+            axes[index].set_title(graph_title)
             sq_min, sq_max = 0, int(linear_response_grid.max())
             sq_max = 1 if sq_max == 0 else sq_max
-            grid = axis[index].pcolormesh(wave_vector_range, self.omega_range, linear_response_grid, cmap='hot',
+            grid = axes[index].pcolormesh(wave_vector_range, self.omega_range, linear_response_grid, cmap='hot',
                                           vmin=sq_min, vmax=sq_max, shading='gouraud')
             # shading='gouraud'
-            figure.colorbar(grid, ax=axis[index])
-            axis[int(amount_of_plots / 2)].set(xlabel='wave vector $q$')
-        axis[0].set(ylabel='$\omega$')
+            figure.colorbar(grid, ax=axes[index])
+            axes[int(amount_of_plots / 2)].set(xlabel='wave vector $q$')
+        axes[0].set(ylabel='$\omega$')
         figure.suptitle(self.figure_title())
         figure.set_size_inches(8 * 2.56, 8 * 1.08)
-        plt.tight_layout()
-        return figure, axis
+        return figure, axes
 
 
 if __name__ == '__main__':
     J = 1
     delta = 1
-    L = 12
-    omega_bin = 0.05
-    q = wave_vector(L, 2)
+    L = 10
+    omega_bin = 0.001
+    # q = wave_vector(L, 2)
     h = [0.01, 1, 10]
     times = linspace(0, 100, 50)
 

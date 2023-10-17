@@ -7,6 +7,7 @@ from cmath import exp as c_exp
 from time import time
 from random import uniform
 from matplotlib import pyplot as plt
+from functools import partial
 
 
 class Hamiltonian(object):
@@ -65,14 +66,19 @@ class Hamiltonian(object):
         if axes:
             axes.axis('off')
 
-            matrix = np.round(np.array(matrix), 4) if matrix else np.round(np.array(self.matrix), 4)
+            matrix = np.round(np.array(matrix if matrix else self.matrix), 4)
+
+            try:
+                cell_height = 1 / matrix.shape[0]
+                cell_width = 1 / matrix.shape[1]
+            except IndexError:
+                matrix = matrix[:, None]
+                cell_height = 1 / matrix.shape[0]
+                cell_width = 1 / matrix.shape[1]
 
             table = axes.table(cellText=matrix, loc='center', cellLoc='center')
             table.auto_set_font_size(False)
             table.set_fontsize(9)
-
-            cell_height = 1 / matrix.shape[0]
-            cell_width = 1 / matrix.shape[1]
 
             for cell in table._cells.values():
                 cell.set_edgecolor('none')
@@ -347,7 +353,7 @@ class QuantumState(Hamiltonian):
     def calculate_operator_time_evolution(self, time_range):
         operator_mean_value_numpy = np.zeros(len(time_range))
         for index, dt in enumerate(time_range):
-            quantum_state = self.quantum_state_of_t(dt)
+            quantum_state = self.quantum_state_of_t_deprecated(dt)
             operator_mean_value = calculate_expected_value(self.operator, quantum_state)
             operator_mean_value_numpy[index] = operator_mean_value.real
         return operator_mean_value_numpy
@@ -406,8 +412,8 @@ class QuantumState(Hamiltonian):
             perturbation += cos(wave_vec * spin) * spin_operator
         return h * perturbation
 
-    def spin_evolution_range(self, time_range):
-        time_evolution_function = np.vectorize(self.operator_time_evolution)
+    def spin_evolution_range_deprecated(self, time_range):
+        time_evolution_function = self.operator_time_evolution_vectorized()
         time_evolution_dict = {}
         for spin in range(self.L):
             self.set_spin_operator(spin)
@@ -415,20 +421,45 @@ class QuantumState(Hamiltonian):
             time_evolution_dict[spin] = time_evolution
         return time_evolution_dict
 
+    def spin_evolution_range(self, time_range):
+        time_evolution_function = self.operator_time_evolution_vectorized()
+        time_evolution_grid = None
+        for spin in range(self.L):
+            self.set_spin_operator(spin)
+            time_evolution = time_evolution_function(time_range)
+            if time_evolution_grid is None:
+                time_evolution_grid = time_evolution
+            else:
+                time_evolution_grid = np.vstack((time_evolution_grid, time_evolution))
+
+        return time_evolution_grid
+
     @staticmethod
     def sum_over_time(omega, time_range_im, operator_evolution):
-        return np.sum(np.exp(omega * time_range_im) * operator_evolution)
+        return np.sum(np.exp(omega * 1j * time_range_im) * operator_evolution)
 
-    def calculate_linear_response_fft(self, omega_range, time_range_im, time_evo_dict, wave_vector):
-        array_length = len(omega_range)
-        linear_respones_q = np.zeros(array_length)
-        for omega, index in zip(omega_range, range(array_length)):
+    def calculate_linear_response_fft_deprecated(self, omega_range, time_range_im, time_evo_dict, wave_vector_):
+        linear_respones_q = np.zeros(len(omega_range))
+        for index, omega in enumerate(omega_range):
             linear_response = 0
             for spin, operator_evolution in time_evo_dict.items():
-                exponent_index = complex(0, wave_vector * spin)
+                exponent_index = 1j * wave_vector_ * spin
                 linear_response += c_exp(exponent_index) * self.sum_over_time(omega, time_range_im, operator_evolution)
             linear_respones_q[index] = abs(linear_response) ** 2
         return linear_respones_q
+
+    @staticmethod
+    def calculate_linear_response_fft_single_value(omega, time_range_im, time_evolution_grid, wave_vector_):
+        stack_y = np.sum(time_evolution_grid * np.exp(1j * omega * time_range_im), axis=1)
+        spins = np.array(list(range(stack_y.shape[0])))
+        return np.abs(np.sum(stack_y * np.exp(1j * wave_vector_ * spins))) ** 2
+
+    def calculate_linear_response_fft(self, omega_range, time_range_im, time_evolution_grid, wave_vector_):
+        linear_response_fft = np.vectorize(partial(self.calculate_linear_response_fft_single_value,
+                                                   time_range_im=time_range_im,
+                                                   time_evolution_grid=time_evolution_grid,
+                                                   wave_vector_=wave_vector_))
+        return linear_response_fft(omega_range)
 
     def set_random_state_vector(self, range_parameter, assign=True):
         new_vector = mat(self.size, 1)

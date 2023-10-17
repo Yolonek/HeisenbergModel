@@ -128,7 +128,7 @@ class LinearResponse(object):
 if __name__ == '__main__':
     J = 1
     delta = 1
-    L = 12
+    L = 14
     temperature_range = [0, 1, float('inf')]
 
     periodic_boundary = False
