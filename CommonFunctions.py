@@ -1,4 +1,4 @@
-from numpy import polyfit, linspace, poly1d, abs, vectorize
+from numpy import polyfit, linspace, poly1d, abs
 import os
 import json
 from datetime import datetime
