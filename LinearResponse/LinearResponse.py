@@ -8,7 +8,8 @@ from matplotlib.colors import LinearSegmentedColormap
 
 class LinearResponse(object):
 
-    def __init__(self, J=1, L=0, delta=0, temperature_list=None, hamiltonian_reduced=False, is_pbc=False, omega_bin=0.1):
+    def __init__(self, J=1, L=0, delta=0, temperature_list=None,
+                 hamiltonian_reduced=False, is_pbc=False, omega_bin=0.1):
         self.J = J
         self.delta = delta
         if hamiltonian_reduced:

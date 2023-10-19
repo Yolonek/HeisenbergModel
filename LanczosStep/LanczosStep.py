@@ -1,11 +1,13 @@
 from HamiltonianClass import *
+from CommonFunctions import print_and_store, make_directories
 from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 class LanczosStep(object):
-    def __init__(self, J=1, L=0, delta=0, hamiltonian_reduced=False, is_pbc=False, lanczos_steps=0, random_param=0.5):
+    def __init__(self, J=1, L=0, delta=0, hamiltonian_reduced=False,
+                 is_pbc=False, lanczos_steps=0, random_param=0.5):
         self.J = J
         self.L = L
         self.delta = delta
@@ -21,6 +23,7 @@ class LanczosStep(object):
         self.y_energies = None
         self.real_eigenvalues = None
         self.json_file = self.file_name(extension='.json')
+        self.logs = ''
 
     def file_name(self, extension='.png'):
         name = f'LanczosStep_L{self.L}_LS{self.lanczos_steps}'
@@ -33,9 +36,10 @@ class LanczosStep(object):
         return self.json_file
 
     def figure_title(self):
-        title = f'Lanczos eigenvalues convergence in function of {self.lanczos_steps} Lanczos steps, size L={self.L}'
+        title = (f'Lanczos eigenvalues convergence in function of '
+                 f'${self.lanczos_steps}$ Lanczos steps, size $L={self.L}$')
         if self.hamiltonian_reduced:
-            title += ', total spin = 0'
+            title += r', $\hat{S}^z_{tot} = 0$'
         else:
             title += ', full-size hamiltonian'
         if self.pbc:
@@ -45,18 +49,19 @@ class LanczosStep(object):
         title += f', {len(self.real_eigenvalues)} real eigenvalues'
         return title
 
-    def save_data(self):
+    def save_data(self, sub_dir=''):
         dict_with_data = {'J': self.J,
                           'delta': self.delta,
                           'L': self.L,
                           'eigenvalues': self.real_eigenvalues.tolist(),
                           'steps': self.lanczos_steps,
                           'x index': self.x_index.tolist(),
-                          'lanczos eigenvalues': self.y_energies.tolist()}
-        save_json_file(dict_with_data, self.json_file)
+                          'lanczos eigenvalues': self.y_energies.tolist(),
+                          'logs': self.logs}
+        save_json_file(dict_with_data, self.json_file, sub_dir=sub_dir)
 
-    def load_data(self):
-        dict_with_data = read_json_file(self.json_file)
+    def load_data(self, sub_dir=''):
+        dict_with_data = read_json_file(self.json_file, sub_dir=sub_dir)
         self.J = dict_with_data['J']
         self.delta = dict_with_data['delta']
         self.L = dict_with_data['L']
@@ -64,8 +69,10 @@ class LanczosStep(object):
         self.lanczos_steps = dict_with_data['steps']
         self.x_index = np.array(dict_with_data['x index'])
         self.y_energies = np.array(dict_with_data['lanczos eigenvalues'])
+        self.logs = dict_with_data['logs']
 
     def simulate_lanczos_step(self):
+        self.logs = print_and_store(self.logs)
         quantum_state = QuantumState(self.L, self.J, self.delta,
                                      is_reduced=self.hamiltonian_reduced,
                                      is_pbc=self.pbc)
@@ -84,11 +91,13 @@ class LanczosStep(object):
                 self.y_energies = np.concatenate((self.y_energies, y_new_energies), axis=0)
             stop_time_sim = time()
             if i % 10 == 0:
-                print(f'Lanczos steps completed: {i}, time taken: {round(stop_time_sim - start_time_sim, 4)} seconds')
+                self.logs = print_and_store(self.logs,
+                                            message=f'Lanczos steps completed: {i}, '
+                                                    f'time taken: {round(stop_time_sim - start_time_sim, 4)} seconds')
         self.real_eigenvalues = np.array(quantum_state.get_all_eigenvalues()).flatten()
 
     def plot_lanczos_step(self):
-        figure, axis = plt.subplots(1, 1)
+        figure, axis = plt.subplots(1, 1, layout='constrained')
         axis.scatter(self.x_index, self.y_energies,
                      marker='+', color='black', label='Lanczos eigenvalues')
         real_eigenvalues_index = np.full(len(self.real_eigenvalues), self.lanczos_steps + 1)
@@ -99,41 +108,48 @@ class LanczosStep(object):
         axis.legend(loc='upper right')
         figure.suptitle(self.figure_title())
         figure.set_size_inches(8 * 2.56, 8 * 1.08)
-        plt.tight_layout()
         return figure, axis
 
 
-J = 1
-L = 10
-delta = 1
-periodic_boundary = False
-spin_zero = True
-lanczos_steps = 100
+if __name__ == '__main__':
+    J = 1
+    L = 10
+    delta = 1
+    lanczos_steps = 100
 
-start_time = time()
+    periodic_boundary = False
+    spin_zero = True
 
-lanczos = LanczosStep(J=J, L=L, delta=delta,
-                      is_pbc=periodic_boundary,
-                      hamiltonian_reduced=spin_zero,
-                      lanczos_steps=lanczos_steps)
+    lanczos = LanczosStep(J=J, L=L, delta=delta,
+                          is_pbc=periodic_boundary,
+                          hamiltonian_reduced=spin_zero,
+                          lanczos_steps=lanczos_steps)
 
-json_file_name = lanczos.get_json_file_name()
-is_simulation_done = check_if_file_has_data(json_file_name)
-ask_to_redo_simulation = False
+    results_path = 'results'
+    image_path = 'images'
+    make_directories([results_path, image_path])
 
-if is_simulation_done:
-    ask_to_redo_simulation = ask_to_replace_file()
+    json_file_name = lanczos.get_json_file_name()
+    is_simulation_done = check_if_file_has_data(json_file_name, sub_dir=results_path)
+    ask_to_redo_simulation = False
 
-if is_simulation_done is False or ask_to_redo_simulation:
-    lanczos.simulate_lanczos_step()
-    lanczos.save_data()
-else:
-    lanczos.load_data()
+    if is_simulation_done:
+        ask_to_redo_simulation = ask_to_replace_file()
 
-stop_time = time()
-print(f'Program took {round(stop_time - start_time, 3)} seconds.')
+    if is_simulation_done is False or ask_to_redo_simulation:
+        start_time = time()
+        lanczos.simulate_lanczos_step()
+        stop_time = time()
+        lanczos.logs = print_and_store(lanczos.logs,
+                                       message=f'Program took {round(stop_time - start_time, 3)} seconds.')
+        lanczos.save_data(sub_dir=results_path)
+    else:
+        lanczos.load_data(sub_dir=results_path)
+        print(lanczos.logs)
 
-fig1, ax1 = lanczos.plot_lanczos_step()
+    figure, axes = lanczos.plot_lanczos_step()
 
-fig1.savefig(lanczos.file_name())
+    image_name = os.path.join(image_path, lanczos.file_name())
+    if not check_if_file_exists(image_name):
+        figure.savefig(image_name)
 
