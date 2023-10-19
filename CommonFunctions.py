@@ -120,12 +120,12 @@ def read_json_file(json_file_name, sub_dir=''):
     return dict_with_data
 
 
-def print_and_store(variable, message=None, only_variable=False, end='\n'):
+def print_and_store(variable, message=None, disable_print=False, end='\n'):
     if message is None:
         message = f'Program executed on {datetime.now()}.'
         variable += message + end
     else:
         variable += message + end
-    if not only_variable:
+    if not disable_print:
         print(message, end=end)
     return variable

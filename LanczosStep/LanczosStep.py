@@ -71,12 +71,12 @@ class LanczosStep(object):
         self.y_energies = np.array(dict_with_data['lanczos eigenvalues'])
         self.logs = dict_with_data['logs']
 
-    def simulate_lanczos_step(self):
-        self.logs = print_and_store(self.logs)
+    def simulate_lanczos_step(self, disable_print=False):
+        self.logs = print_and_store(self.logs, disable_print=disable_print)
         quantum_state = QuantumState(self.L, self.J, self.delta,
                                      is_reduced=self.hamiltonian_reduced,
                                      is_pbc=self.pbc)
-        quantum_state.set_random_state_vector(self.random_param)
+        quantum_state.set_random_state_vector(range_parameter=self.random_param)
         for i in range(1, self.lanczos_steps + 1):
             start_time_sim = time()
             quantum_state.lanczos_step()
@@ -93,22 +93,23 @@ class LanczosStep(object):
             if i % 10 == 0:
                 self.logs = print_and_store(self.logs,
                                             message=f'Lanczos steps completed: {i}, '
-                                                    f'time taken: {round(stop_time_sim - start_time_sim, 4)} seconds')
+                                                    f'time taken: {round(stop_time_sim - start_time_sim, 4)} seconds',
+                                            disable_print=disable_print)
         self.real_eigenvalues = np.array(quantum_state.get_all_eigenvalues()).flatten()
 
     def plot_lanczos_step(self):
-        figure, axis = plt.subplots(1, 1, layout='constrained')
-        axis.scatter(self.x_index, self.y_energies,
+        figure, axes = plt.subplots(1, 1, layout='constrained')
+        axes.scatter(self.x_index, self.y_energies,
                      marker='+', color='black', label='Lanczos eigenvalues')
         real_eigenvalues_index = np.full(len(self.real_eigenvalues), self.lanczos_steps + 1)
-        axis.scatter(real_eigenvalues_index, self.real_eigenvalues,
+        axes.scatter(real_eigenvalues_index, self.real_eigenvalues,
                      marker='x', color='blue', label='real eigenvalues')
-        axis.set(xlabel='Lanczos step', ylabel='energies')
-        axis.grid()
-        axis.legend(loc='upper right')
+        axes.set(xlabel='Lanczos step', ylabel='energies')
+        axes.grid()
+        axes.legend(loc='upper right')
         figure.suptitle(self.figure_title())
         figure.set_size_inches(8 * 2.56, 8 * 1.08)
-        return figure, axis
+        return figure, axes
 
 
 if __name__ == '__main__':

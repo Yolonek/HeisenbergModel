@@ -460,7 +460,7 @@ class QuantumState(Hamiltonian):
                                                    wave_vector_=wave_vector_))
         return linear_response_fft(omega_range)
 
-    def set_random_state_vector(self, range_parameter, assign=True):
+    def set_random_state_vector(self, range_parameter=0.5, assign=True):
         new_vector = mat(self.size, 1)
         new_vector.imbue(lambda: uniform(0, 1) - range_parameter)
         new_vector = new_vector / norm(new_vector)
@@ -509,7 +509,7 @@ class QuantumState(Hamiltonian):
             self.lanczos_vector.print()
 
     def do_n_lanczos_steps(self, steps):
-        for n in range(steps):
+        for _ in range(steps):
             self.lanczos_step()
 
     def lanczos_matrix_eigenstates(self):
@@ -519,6 +519,12 @@ class QuantumState(Hamiltonian):
 
     def get_lanczos_matrix(self):
         return self.lanczos_matrix
+
+    def get_lanczos_vector(self):
+        return self.lanczos_vector
+
+    def get_lanczos_previous_vector(self):
+        return self.lanczos_previous_vector
 
 
 if __name__ == '__main__':

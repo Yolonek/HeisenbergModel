@@ -8,3 +8,5 @@
 -> Manage all projects from one main.py
 
 -> Replace pyarma with numpy
+
+-> Add graphs for bigger L in .ipynb files
