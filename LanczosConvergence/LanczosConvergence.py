@@ -1,12 +1,13 @@
 from HamiltonianClass import *
+from CommonFunctions import print_and_store, make_directories
 from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 class LanczosConvergence(object):
-    def __init__(self, J=1, L_max=0, delta_list=None,
-                 hamiltonian_reduced=False, is_pbc=False, lanczos_steps=0, random_param=0.5):
+    def __init__(self, J=1, L_max=0, delta_list=None, hamiltonian_reduced=False,
+                 is_pbc=False, lanczos_steps=0, random_param=0.5):
         self.J = J
         self.L = L_max
         self.deltas = delta_list
@@ -23,6 +24,7 @@ class LanczosConvergence(object):
         self.random_param = random_param
         self.lanczos_energy_dict = {}
         self.json_file = self.file_name(extension='.json')
+        self.logs = ''
 
     def file_name(self, extension='.png'):
         name = f'LanczosConvergence_L{self.L}_LS{self.lanczos_steps}'
@@ -36,9 +38,9 @@ class LanczosConvergence(object):
 
     def figure_title(self):
         title = f'Lanczos ground energy convergence in function of ' \
-                f'{self.lanczos_steps} Lanczos steps, L={self.L}'
+                f'${self.lanczos_steps}$ Lanczos steps, $L={self.L}$'
         if self.hamiltonian_reduced:
-            title += ', total spin = 0'
+            title += r', $\hat{S}^z_{tot} = 0$'
         else:
             title += ', full-size hamiltonian'
         if self.pbc:
@@ -47,25 +49,28 @@ class LanczosConvergence(object):
             title += ', open boundary conditions'
         return title
 
-    def save_data(self):
+    def save_data(self, sub_dir=''):
         dict_with_data = {'J': self.J,
                           'deltas': self.deltas,
                           'L': self.L,
                           'L list': self.L_list,
                           'steps': self.lanczos_steps,
-                          'ground states': self.lanczos_energy_dict}
-        save_json_file(dict_with_data, self.json_file)
+                          'ground states': self.lanczos_energy_dict,
+                          'logs': self.logs}
+        save_json_file(dict_with_data, self.json_file, sub_dir=sub_dir)
 
-    def load_data(self):
-        dict_with_data = read_json_file(self.json_file)
+    def load_data(self, sub_dir=''):
+        dict_with_data = read_json_file(self.json_file, sub_dir=sub_dir)
         self.J = dict_with_data['J']
         self.deltas = dict_with_data['deltas']
         self.L = dict_with_data['L']
         self.L_list = dict_with_data['L list']
         self.lanczos_steps = dict_with_data['steps']
         self.lanczos_energy_dict = dict_with_data['ground states']
+        self.logs = dict_with_data['logs']
 
     def simulate_lanczos_convergence(self):
+        self.logs = print_and_store(self.logs)
         self.lanczos_energy_dict = {}
         for L in self.L_list:
             lanczos_energy_L = {}
@@ -83,12 +88,14 @@ class LanczosConvergence(object):
                     lanczos_ground_energy[i - 1] = eigenvalues[0]
                 lanczos_energy_L[str(delta)] = (lanczos_ground_energy.tolist(), real_ground_energy)
                 stop_time_sim = time()
-                print(f'L = {L}, delta = {delta}, time taken: {round(stop_time_sim - start_time_sim, 4)} seconds')
+                self.logs = print_and_store(self.logs,
+                                            message=f'L = {L}, delta = {delta}, '
+                                                    f'time taken: {round(stop_time_sim - start_time_sim, 4)} seconds')
             self.lanczos_energy_dict[str(L)] = lanczos_energy_L
 
     def plot_lanczos_convergence(self):
         lanczos_range = list(range(1, self.lanczos_steps + 1))
-        figure, axis = plt.subplots(1, 1)
+        figure, axis = plt.subplots(1, 1, layout='constrained')
         for L, lanczos_delta_dict in self.lanczos_energy_dict.items():
             for delta, lanczos_ground_energy in lanczos_delta_dict.items():
                 linestyle = 'solid' if delta == '0' else 'dashed'
@@ -97,42 +104,50 @@ class LanczosConvergence(object):
                 axis.plot(lanczos_range, lanczos_converged, linestyle=linestyle, label=label)
         axis.set(xlabel='Lanczos step', ylabel='Lanczos ground energy / real ground energy')
         axis.legend(loc='lower right')
+        axis.grid()
         figure.suptitle(self.figure_title())
         figure.set_size_inches(8 * 1.92, 8 * 1.08)
-        plt.tight_layout()
         return figure, axis
 
 
-J = 1
-L = 14
-deltas = [0, 1]
-periodic_boundary = False
-spin_zero = True
-lanczos_steps = 50
+if __name__ == '__main__':
+    J = 1
+    L = 14
+    deltas = [0, 1]
+    lanczos_steps = 50
 
-start_time = time()
+    periodic_boundary = False
+    spin_zero = True
 
-lanczos = LanczosConvergence(J=J, L_max=L, delta_list=deltas,
-                             is_pbc=periodic_boundary,
-                             hamiltonian_reduced=spin_zero,
-                             lanczos_steps=lanczos_steps)
+    lanczos = LanczosConvergence(J=J, L_max=L, delta_list=deltas,
+                                 is_pbc=periodic_boundary,
+                                 hamiltonian_reduced=spin_zero,
+                                 lanczos_steps=lanczos_steps)
 
-json_file_name = lanczos.get_json_file_name()
-is_simulation_done = check_if_file_has_data(json_file_name)
-ask_to_redo_simulation = False
+    results_path = 'results'
+    image_path = 'images'
+    make_directories([results_path, image_path])
 
-if is_simulation_done:
-    ask_to_redo_simulation = ask_to_replace_file()
+    json_file_name = lanczos.get_json_file_name()
+    is_simulation_done = check_if_file_has_data(json_file_name, sub_dir=results_path)
+    ask_to_redo_simulation = False
 
-if is_simulation_done is False or ask_to_redo_simulation:
-    lanczos.simulate_lanczos_convergence()
-    lanczos.save_data()
-else:
-    lanczos.load_data()
+    if is_simulation_done:
+        ask_to_redo_simulation = ask_to_replace_file()
 
-stop_time = time()
-print(f'Program took {round(stop_time - start_time, 3)} seconds.')
+    if is_simulation_done is False or ask_to_redo_simulation:
+        start_time = time()
+        lanczos.simulate_lanczos_convergence()
+        stop_time = time()
+        lanczos.logs = print_and_store(lanczos.logs,
+                                       message=f'Program took {round(stop_time - start_time, 3)} seconds.')
+        lanczos.save_data(sub_dir=results_path)
+    else:
+        lanczos.load_data(sub_dir=results_path)
+        print(lanczos.logs)
 
-fig1, ax1 = lanczos.plot_lanczos_convergence()
+    figure, axes = lanczos.plot_lanczos_convergence()
 
-fig1.savefig(lanczos.file_name())
+    image_name = os.path.join(image_path, lanczos.file_name())
+    if not check_if_file_exists(image_name):
+        figure.savefig(image_name)
