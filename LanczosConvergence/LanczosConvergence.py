@@ -12,9 +12,9 @@ class LanczosConvergence(object):
         self.L = L_max
         self.deltas = delta_list
         if hamiltonian_reduced:
-            self.L = L if L % 2 == 0 else L - 1
+            self.L = L_max if L_max % 2 == 0 else L_max - 1
         else:
-            self.L = L
+            self.L = L_max
         self.L_list = list(range(6, self.L + 1))
         if hamiltonian_reduced:
             self.L_list = delete_odd_numbers(self.L_list)
@@ -69,8 +69,8 @@ class LanczosConvergence(object):
         self.lanczos_energy_dict = dict_with_data['ground states']
         self.logs = dict_with_data['logs']
 
-    def simulate_lanczos_convergence(self):
-        self.logs = print_and_store(self.logs)
+    def simulate_lanczos_convergence(self, disable_print=False):
+        self.logs = print_and_store(self.logs, disable_print=disable_print)
         self.lanczos_energy_dict = {}
         for L in self.L_list:
             lanczos_energy_L = {}
@@ -89,24 +89,26 @@ class LanczosConvergence(object):
                 lanczos_energy_L[str(delta)] = (lanczos_ground_energy.tolist(), real_ground_energy)
                 stop_time_sim = time()
                 self.logs = print_and_store(self.logs,
+                                            disable_print=disable_print,
                                             message=f'L = {L}, delta = {delta}, '
                                                     f'time taken: {round(stop_time_sim - start_time_sim, 4)} seconds')
             self.lanczos_energy_dict[str(L)] = lanczos_energy_L
 
-    def plot_lanczos_convergence(self):
+    def plot_lanczos_convergence(self, set_up_figure=True):
         lanczos_range = list(range(1, self.lanczos_steps + 1))
         figure, axis = plt.subplots(1, 1, layout='constrained')
         for L, lanczos_delta_dict in self.lanczos_energy_dict.items():
             for delta, lanczos_ground_energy in lanczos_delta_dict.items():
                 linestyle = 'solid' if delta == '0' else 'dashed'
-                label = f'L = {L}, delta = {delta}, ground energy = {round(lanczos_ground_energy[1], 4)}'
+                label = f'$L = {L}, \Delta = {delta}, \epsilon_0 = {round(lanczos_ground_energy[1], 4)}$'
                 lanczos_converged = [energy / lanczos_ground_energy[1] for energy in lanczos_ground_energy[0]]
                 axis.plot(lanczos_range, lanczos_converged, linestyle=linestyle, label=label)
-        axis.set(xlabel='Lanczos step', ylabel='Lanczos ground energy / real ground energy')
+        axis.set(xlabel='Lanczos step', ylabel=r'$\frac{\tilde{\epsilon}_0 - \epsilon_0}{\epsilon_0}$')
         axis.legend(loc='lower right')
         axis.grid()
-        figure.suptitle(self.figure_title())
-        figure.set_size_inches(8 * 1.92, 8 * 1.08)
+        if set_up_figure:
+            figure.suptitle(self.figure_title())
+            figure.set_size_inches(8 * 1.92, 8 * 1.08)
         return figure, axis
 
 
